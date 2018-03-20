@@ -19,7 +19,7 @@ Implementation:
 What we have implemented can be described as follows:
 -We did not change the original invoice creator; we create test and validation data using this function.
 -We run the baseline neural net thrice, and average the outputs
--We apply a convolution filter over the output, so that small islands, gaps and 'weak' edge states (in strings of e.g. 05*5550)
+-We apply a convolution filter over the output, so that small islands (e.g. 500550000, gaps (555505555) and 'weak' edge states (in strings of e.g. 05*5550)
 (5* being a weak edge state) have their weights lowered.
 -We scale all found falues for 0 (the none-category) with 1.25, to account for the imbalanced ratio of symbols labeled with a 0, 
 as compared to those labeled anything else//'false positives' were found to be most abundant: 
