@@ -9,6 +9,31 @@ Original file is located at
 # Set up the environment
 """
 
+'''
+
+Goal: 
+-Categorizeeach symbol in an invoice in one of 6 categories. The zero category means no classification and the other 5 include: total money
+owed, KvK number, IBAN Number and sender.
+
+Implementation:
+What we have implemented can be described as follows:
+-We did not change the original invoice creator; we create test and validation data using this function.
+-We run the baseline neural net thrice, and average the outputs
+-We apply a convolution filter over the output, so that small islands, gaps and 'weak' edge states (in strings of e.g. 05*5550)
+(5* being a weak edge state) have their weights lowered.
+-We scale all found falues for 0 (the none-category) with 1.25, to account for the imbalanced ratio of symbols labeled with a 0, 
+as compared to those labeled anything else//'false positives' were found to be most abundant: 
+if the algorithm finds that it can be a zero, it probably is. Scaling with 1.25 is an experimentally found value.
+-The categories that involve specific strings (s.a. IBAN and max value owed) can be searched deterministially. If either of these two
+can be found, then we first reset the outputs of said categories, found by machinelearning, and then overwrite.
+
+Results:
+No proper quantitative large-scaled analysis has been performed, though the filter, the scaling and the deterministic seem to
+consistently clean up the outcome of the neural net. The target 1-5's are pretty much always labeled correctly, 
+the target 0's occasionally become victims of false positives. The accuracy on a single invoice can be verified in the last few lines.
+'''
+
+
 #ideas: foresting, boosting
 
 # Setup 
@@ -261,7 +286,7 @@ def neural_net():
 #Create and compile model
 neural_net()
 
-#Not sure if this is defined as bagging but it is ~a~ possible name
+#Not sure if this is defined as bagging
 def bagging(x_tr = None, y_tr = None, amountofbags = 3): 
   
   x_pieces_storagebin = []
@@ -354,7 +379,7 @@ x_test = np.array(data)
 
 """## Making Predictions"""
 
-#Takes a while. modellist can be omitted but it's there so let's keep it. Perhaps pop model after y_pred
+#Takes a while.
 y_pred = []
 modellist = []
 for i in range(0,3):
@@ -385,7 +410,7 @@ for i in list(range(0,(len(y_pred)-1))):
 #Convolves over each weight vector (in {0-5}) (i.e. prior to taking argmax). (this convolution removes islands (both noise and false positives))
 
 def OneDConvFive(y_preconv):
-    #Re-normalising actually unnecessary but w/e. Repeatedly convolving blocks effectively results in a gaussianshaped filter with a rather large sigma
+    # Repeatedly convolving blocks effectively results in a gaussianshaped filter with a rather large sigma
     gausslikefiltercoeffs = [0.05,1,1,1,0.05]
     gauss_size = np.dot(gausslikefiltercoeffs, gausslikefiltercoeffs)
     y_pred_conv = []
@@ -401,7 +426,7 @@ y_pred_convo_mean=OneDConvFive(y_pred_mean)
 for i in list(range(0,20)):
     y_pred_convo_mean=OneDConvFive(y_pred_convo_mean)
 
-#Use copy to get pointers straight (or w/e pointers really are)
+#Use a copy to get pointers straight 
 import copy
 
 y_pred_convo_mean_scaled = copy.copy(y_pred_convo_mean)
@@ -420,14 +445,15 @@ def cheating(invoices, index, y_pred_c_scaled):
   #create new data vector
   y_pred_c_scaled_re=copy.copy(y_pred_c_scaled)
   
-  #perform algorithm for total money owed
+  #perform algorithm for total money owed (first find strings of all monetary values, then convert to double, find the maximum value,
+  # make sure that the final string contains two decimal numbers.
   foundvalues=re.findall(r'[0-9]*[\.][0-9]{2}', invoices[index])
 
   maxvalue=max(map(float,foundvalues))
   maxvalue = "%.2f" % maxvalue
 
   indicesmoninfin = re.search(str(maxvalue), invoices[index])
-  indicesmonall = list(range(indicesmoninfin.start(),indicesmoninfin.end()+1))
+  indicesmonall = list(range(indicesmoninfin.start(),indicesmoninfin.end()))
 
   y_pred_c_scaled_re=copy.copy(y_pred_c_scaled)
   if len(maxvalue) > 0:
@@ -442,7 +468,7 @@ def cheating(invoices, index, y_pred_c_scaled):
 
   if len(bankaccount) > 0:
     indicesinfinbank = re.search(str(bankaccount[0]),string = invoices[index])
-    allindicesbank = list(range(indicesinfinbank.start(),indicesinfinbank.end()+1))
+    allindicesbank = list(range(indicesinfinbank.start(),indicesinfinbank.end()))
 
     for i in list(range(0,len(y_pred_c_scaled)-1)):
       if y_pred_c_scaled_re[i]== 3:
