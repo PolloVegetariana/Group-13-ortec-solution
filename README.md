@@ -31,6 +31,8 @@ No proper quantitative large-scaled analysis has been performed, though the filt
 consistently clean up the outcome of the neural net. The target 1-5's are pretty much always labeled correctly, 
 the target 0's occasionally become victims of false positives. The accuracy on a single invoice can be verified in the last few lines.
 
+We did a random sampling performance test of single invoices (20x) and the results are:
+
 Contraints
 
 -Due to the limited amount of training data provided there is a probability the model presented overfits and therefore will not generalize effectively.
